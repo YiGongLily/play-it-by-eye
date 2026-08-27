@@ -42,11 +42,11 @@ Demo videos are published on [GitHub Releases](https://github.com/YiGongLily/pla
 
 * Isaac Lab — depth-driven locomotion on rough / stair terrain (AgiBot X2):
 
-https://github.com/YiGongLily/play-it-by-eye/releases/download/v0.1.0/demo_isaac.mp4"
+<video controls src="https://github.com/YiGongLily/play-it-by-eye/releases/download/v0.1.0/demo_isaac.mp4" width="720"></video>
 
 * MuJoCo sim2sim:
 
-https://github.com/YiGongLily/play-it-by-eye/releases/download/v0.1.0/demo_mujoco.mp4"
+<video controls src="https://github.com/YiGongLily/play-it-by-eye/releases/download/v0.1.0/demo_mujoco.mp4" width="720"></video>
 
 ## Architecture
 
