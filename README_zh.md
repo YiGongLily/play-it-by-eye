@@ -42,11 +42,11 @@
 
 * Isaac Lab — 深度驱动运动（AgiBot X2）：
 
-https://github.com/YiGongLily/play-it-by-eye/releases/download/v0.1.0/demo_isaac.mp4
+https://github.com/user-attachments/assets/3083dbb7-f080-4abe-b575-f7c14b888329
 
 * MuJoCo sim2sim：
 
-https://github.com/YiGongLily/play-it-by-eye/releases/download/v0.1.0/demo_mujoco.mp4
+https://github.com/user-attachments/assets/3083dbb7-f080-4abe-b575-f7c14b888329
 
 ## 架构
 
