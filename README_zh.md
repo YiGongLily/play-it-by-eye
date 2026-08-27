@@ -42,7 +42,7 @@
 
 * Isaac Lab — 深度驱动运动（AgiBot X2）：
 
-https://github.com/user-attachments/assets/3083dbb7-f080-4abe-b575-f7c14b888329
+https://github.com/user-attachments/assets/d7d7262c-376e-4351-a948-ac3274081ad4
 
 * MuJoCo sim2sim：
 
