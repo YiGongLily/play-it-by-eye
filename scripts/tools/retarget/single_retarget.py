@@ -1,0 +1,250 @@
+"""
+This module provides functionality to convert motion data from GMR format to Legged Lab format.
+
+Ref:
+    - https://github.com/xbpeng/MimicKit/blob/main/tools/gmr_to_mimickit/gmr_to_mimickit.py
+    - https://github.com/HybridRobotics/whole_body_tracking/blob/main/scripts/csv_to_npz.py
+
+What does this script do?
+    - Reorder the dof data from GMR (in mujoco order) to Legged Lab (in Isaac Lab order).
+    - Add loop mode to the motion data.
+
+Usage:
+    Command line:
+        python scripts/tools/retarget/gmr_to_lab.py \
+            --robot g1 \
+            --input_file <path_to_gmr_file> \
+            --output_file <path_to_output_file> \
+            --config_file <path_to_config_file> \
+            [--loop {wrap,clamp}] \
+            [--frame_range START END]
+
+    Required arguments:
+        --robot: Robot name to be used (default: g1).
+        --input_file: Path to the input GMR motion file (pickle format).
+        --output_file: Path to save the converted motion data (pickle format).
+        --config_file: Path to the configuration file (yaml format).
+                      Should contain: gmr_dof_names, lab_dof_names, lab_key_body_names
+
+    Optional arguments:
+        --loop {wrap,clamp}     Loop mode for the motion (default: clamp).
+        --frame_range START END Frame range to extract.
+                               If not provided, all frames will be processed.
+                               Example: --frame_range 10 100
+
+    AppLauncher arguments:
+        --headless              Run without GUI.
+        --device {cpu,cuda:0}   Device to use for simulation (default: cuda:0).
+
+    Example:
+        # Convert full motion with GUI
+        python scripts/tools/retarget/gmr_to_lab.py \
+            --robot g1 \
+            --input_file data/gmr/walk.pkl \
+            --output_file data/lab/walk.pkl \
+            --config_file scripts/tools/retarget/g1_29dof.yaml
+
+        # Convert specific frame range without GUI
+        python scripts/tools/retarget/gmr_to_lab.py \
+            --robot g1 \
+            --input_file data/gmr/walk.pkl \
+            --output_file data/lab/walk_clip.pkl \
+            --config_file scripts/tools/retarget/g1_29dof.yaml \
+            --frame_range 10 100 \
+            --loop wrap \
+            --headless
+
+GMR Format:
+    The input GMR format should be a pickle file containing a dictionary with keys:
+    - 'fps': Frame rate (int)
+    - 'root_pos': Root position array, shape (num_frames, 3)
+    - 'root_rot': Root rotation quaternions, shape (num_frames, 4), format (x, y, z, w)
+    - 'dof_pos': Degrees of freedom positions, shape (num_frames, num_dofs)
+    - 'local_body_pos': Currently unused (can be None)
+    - 'link_body_list': Currently unused (can be None)
+
+"""
+
+import argparse
+
+from isaaclab.app import AppLauncher
+
+# add argparse arguments
+parser = argparse.ArgumentParser(description="Visualization of retargeted data.")
+parser.add_argument(
+    "--robot",
+    type=str,
+    default="g1",
+    help="The robot name to be used.",
+)
+parser.add_argument(
+    "--input_file",
+    type=str,
+    required=True,
+    help="Path to the input GMR motion file (pickle format).",
+)
+parser.add_argument(
+    "--output_file",
+    type=str,
+    required=True,
+    help="Path to save the converted motion data (pickle format).",
+)
+parser.add_argument(
+    "--config_file",
+    type=str,
+    required=True,
+    help="Path to the configuration file (yaml format).",
+)
+parser.add_argument(
+    "--loop",
+    type=str,
+    choices=["wrap", "clamp"],
+    default="clamp",
+    help="Loop mode for the motion (default: clamp).",
+)
+parser.add_argument(
+    "--frame_range",
+    nargs=2,
+    type=int,
+    metavar=("START", "END"),
+    help="frame range: START END (both inclusive). If not provided, all frames will be loaded.",
+)
+
+# append AppLauncher cli args
+AppLauncher.add_app_launcher_args(parser)
+# parse the arguments
+args_cli = parser.parse_args()
+
+# launch omniverse app
+app_launcher = AppLauncher(args_cli)
+simulation_app = app_launcher.app
+
+"""Rest everything follows."""
+
+import pickle
+import sys
+import yaml
+from pathlib import Path
+
+import isaaclab.sim as sim_utils
+from isaaclab.scene import InteractiveScene
+
+##
+# Pre-defined configs
+##
+if args_cli.robot == "g1":
+    from legged_lab.assets.unitree import UNITREE_G1_29DOF_CFG as ROBOT_CFG
+elif args_cli.robot == "x2":
+    from legged_lab.assets.agibot import AGIBOT_X2_ULTRA_CFG as ROBOT_CFG
+else:
+    raise ValueError(f"Robot {args_cli.robot} not supported.")
+
+# Import functions and classes from gmr_to_lab.py
+# Add the script directory to path to allow imports
+script_dir = Path(__file__).parent
+sys.path.insert(0, str(script_dir))
+
+try:
+    from gmr_to_lab import LoopMode, ReplayMotionsSceneCfg, extract_gmr_data, run_simulator
+except ImportError as e:
+    print(f"Error importing from gmr_to_lab.py: {e}")
+    print("Make sure gmr_to_lab.py is in the same directory as this script.")
+    raise
+
+# Head joints zeroed for X2 locomotion demos (strategy A: after extract, before sim).
+_X2_HEAD_JOINTS = ("head_yaw_joint", "head_pitch_joint")
+
+
+def _zero_head_joints(motion: dict, lab_dof_names: list[str]) -> None:
+    """In-place: set head_yaw / head_pitch columns to 0 in Lab-order dof_pos."""
+    for name in _X2_HEAD_JOINTS:
+        if name not in lab_dof_names:
+            raise ValueError(f"Expected head joint '{name}' in lab_dof_names for X2.")
+        idx = lab_dof_names.index(name)
+        motion["dof_pos"][:, idx] = 0.0
+    print(f"[INFO]: Zeroed X2 head joints {_X2_HEAD_JOINTS} in Lab dof order.")
+
+
+if __name__ == "__main__":
+    with open(args_cli.config_file) as f:
+        config = yaml.safe_load(f)
+
+    gmr_dof_names = config["gmr_dof_names"]
+    lab_dof_names = config["lab_dof_names"]
+    lab_key_body_names = config["lab_key_body_names"]
+
+    loop_mode = LoopMode.CLAMP if args_cli.loop == "clamp" else LoopMode.WRAP
+
+    # Verify gmr_dof_names against pickle joint_names when present
+    with open(args_cli.input_file, "rb") as f:
+        raw = pickle.load(f)
+    if "joint_names" in raw and list(raw["joint_names"]) != list(gmr_dof_names):
+        raise ValueError(
+            f"gmr_dof_names mismatch for {args_cli.input_file}:\n"
+            f"  pkl: {list(raw['joint_names'])}\n"
+            f"  yaml: {list(gmr_dof_names)}"
+        )
+
+    motion_data_dict = extract_gmr_data(
+        gmr_file_path=args_cli.input_file,
+        gmr_dof_names=gmr_dof_names,
+        lab_dof_names=lab_dof_names,
+        loop_mode=loop_mode,
+        start_frame=args_cli.frame_range[0] if args_cli.frame_range else 0,
+        end_frame=args_cli.frame_range[1] if args_cli.frame_range else -1,
+    )
+    if args_cli.robot == "x2":
+        _zero_head_joints(motion_data_dict, lab_dof_names)
+
+    fps = motion_data_dict["fps"]
+    dt = 1.0 / fps
+
+    sim = sim_utils.SimulationContext(sim_utils.SimulationCfg(dt=dt, device=args_cli.device))
+    scene_cfg = ReplayMotionsSceneCfg(
+        num_envs=1, env_spacing=3.0, robot=ROBOT_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+    )
+    scene = InteractiveScene(scene_cfg)
+
+    # Set main camera
+    sim.set_camera_view([2.0, 0.0, 2.5], [-0.5, 0.0, 0.5])
+
+    sim.reset()
+
+    # Assert yaml lab_dof_names matches runtime Isaac Lab joint order (after reset)
+    robot = scene["robot"]
+    runtime_joint_names = list(robot.joint_names)
+    print(f"[INFO]: Runtime robot.joint_names ({len(runtime_joint_names)}):")
+    for i, n in enumerate(runtime_joint_names):
+        print(f"  {i:2d}  {n}")
+    if runtime_joint_names != list(lab_dof_names):
+        raise AssertionError(
+            "lab_dof_names in yaml != robot.joint_names at runtime.\n"
+            f"  yaml: {list(lab_dof_names)}\n"
+            f"  runtime: {runtime_joint_names}"
+        )
+    print("[INFO]: lab_dof_names == robot.joint_names ✓")
+    print("Simulation starting ...")
+
+    motion_data_dicts = [motion_data_dict]
+    motion_data_dicts = run_simulator(simulation_app, sim, scene, motion_data_dicts, lab_key_body_names)
+
+    motion_data_dict = motion_data_dicts[0]
+
+    print("\n" + "=" * 60)
+    print("💾 SAVING CONVERTED DATA")
+    print("=" * 60)
+    print(f"📁 Output File: {args_cli.output_file}")
+    print(
+        f"🧮 Number of Frames: {args_cli.frame_range[1] - args_cli.frame_range[0] if args_cli.frame_range else 'All'}"
+    )
+    print(f"🔁 Loop Mode: {loop_mode.name}")
+    print("=" * 60 + "\n")
+
+    with open(args_cli.output_file, "wb") as f:
+        pickle.dump(motion_data_dict, f)
+    print("✅ Data saved successfully.")
+    print("=" * 60 + "\n")
+
+    print("Closing simulation app...")
+    simulation_app.close()
+    print("✅ Simulation app closed.")

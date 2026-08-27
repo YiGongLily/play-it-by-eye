@@ -1,0 +1,88 @@
+# Omniverse
+**/*.dmp
+**/.thumbs
+
+# Python
+.DS_Store
+**/*.egg-info/
+**/__pycache__/
+**/.pytest_cache/
+**/*.pyc
+**/*.pb
+
+# IDE
+**/.idea/
+**/.vscode/
+# Don't ignore the top-level .vscode directory as it is
+# used to configure VS Code settings
+!.vscode
+
+# Outputs
+**/runs/*
+**/logs/*
+**/recordings/*
+**/output/*
+**/outputs/*
+**/videos/*
+**/wandb/*
+**/.neptune/*
+*.tmp
+
+# Isaac-Sim packman
+_isaac_sim*
+_repo
+_build
+.lastformat
+
+# Temp folders
+**/temp/
+**/tmp/
+
+# Codex / agent local environment (do not publish)
+.codex/env.local.sh
+.agents/
+
+# Batch experiment machine-local config
+scripts/experiments/env.local.sh
+
+# Interactive launcher: last-used selections
+scripts/launch/.launch_last.json
+
+# smoke test logs (local only)
+smoke_test_logs/
+logs/
+
+# temporary frame dumps from play/record
+_frames_tmp/
+
+# Local capture / streamer dumps
+NvStreamer-*.etli
+*.etli
+
+# Local process / editor backups / export artifacts
+.pid
+**/*.bak
+**/*.bak_*
+**/*.onnx
+**/exported_depth_cnn/
+
+# Cursor / local AI notes (do not publish)
+.cursor/
+.cursorrules
+.claude/
+AGENTS.md
+
+# Design / process docs (public README + docs/assets stay tracked)
+source/legged_lab/docs/
+docs/assets/architecture_figure_brief.md
+
+# Unused Isaac Lab template pytest suite (kept locally, not published)
+source/legged_lab/test/
+
+# Demo videos hosted on GitHub Releases (keep clone small).
+# architecture.jpg under docs/assets/ remains tracked.
+docs/assets/*.mp4
+
+# X2 USD meshes exceed GitHub soft/hard size limits (~100MB); sync separately
+source/legged_lab/legged_lab/data/Robots/x2/usd/x2_ultra/configuration/x2_ultra_base.usd
+source/legged_lab/legged_lab/data/Robots/x2/usd/x2_ultra_simple_collision/configuration/x2_ultra_simple_collision_base.usd

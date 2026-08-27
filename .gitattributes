@@ -1,0 +1,3 @@
+# Line endings / text handling only.
+* text=auto
+*.sh text eol=LF
