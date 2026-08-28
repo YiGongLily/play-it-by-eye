@@ -19,6 +19,7 @@
   - [2. Train / Resume](#2-train--resume)
   - [3. Play](#3-play)
   - [4. Export ONNX](#4-export-onnx)
+  - [5. MuJoCo Sim2Sim](#5-mujoco-sim2sim)
 - [Citation](#citation)
 - [Acknowledgement](#acknowledgement)
 
@@ -44,7 +45,7 @@ Demo videos are published on [GitHub Releases](https://github.com/YiGongLily/pla
 
 https://github.com/user-attachments/assets/d7d7262c-376e-4351-a948-ac3274081ad4
 
-* MuJoCo sim2sim:
+* MuJoCo sim2sim ([companion repo](https://github.com/YiGongLily/play-it-by-eye_sim2sim)):
 
 https://github.com/user-attachments/assets/3083dbb7-f080-4abe-b575-f7c14b888329
 
@@ -178,7 +179,20 @@ python scripts/rsl_rl/export_depth_cnn_onnx.py \
   --num_align_steps 100
 ```
 
-Synthetic-only alignment (no env rollout): add `--skip_env_dump`. Downstream MuJoCo closed-loop lives in the sibling `x2_depth_sim2sim` project.
+Synthetic-only alignment (no env rollout): add `--skip_env_dump`.
+
+### 5. MuJoCo Sim2Sim
+
+After exporting ONNX, run the closed-loop MuJoCo + viser stack in the companion repo:
+
+**[play-it-by-eye_sim2sim](https://github.com/YiGongLily/play-it-by-eye_sim2sim)** — loads the deploy pack, renders head depth, and plays the policy in the browser (flat / stairs / slope).
+
+```bash
+# clone next to this repo (same parent directory)
+git clone https://github.com/YiGongLily/play-it-by-eye_sim2sim.git
+cd play-it-by-eye_sim2sim
+# see that repo's README for venv, deploy_real / mesh prerequisites, and run commands
+```
 
 ## Citation
 

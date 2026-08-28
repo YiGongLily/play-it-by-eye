@@ -19,6 +19,7 @@
   - [2. 训练 / 续训](#2-训练--续训)
   - [3. 播放](#3-播放)
   - [4. 导出 ONNX](#4-导出-onnx)
+  - [5. MuJoCo Sim2Sim](#5-mujoco-sim2sim)
 - [引用](#引用)
 - [致谢](#致谢)
 
@@ -44,7 +45,7 @@
 
 https://github.com/user-attachments/assets/d7d7262c-376e-4351-a948-ac3274081ad4
 
-* MuJoCo sim2sim：
+* MuJoCo sim2sim（[配套仓库](https://github.com/YiGongLily/play-it-by-eye_sim2sim)）：
 
 https://github.com/user-attachments/assets/3083dbb7-f080-4abe-b575-f7c14b888329
 
@@ -178,7 +179,20 @@ python scripts/rsl_rl/export_depth_cnn_onnx.py \
   --num_align_steps 100
 ```
 
-若仅合成对齐、不跑环境：加 `--skip_env_dump`。下游 MuJoCo 闭环见姊妹项目 `x2_depth_sim2sim`。
+若仅合成对齐、不跑环境：加 `--skip_env_dump`。
+
+### 5. MuJoCo Sim2Sim
+
+导出 ONNX 后，在配套仓库中运行 MuJoCo + viser 闭环：
+
+**[play-it-by-eye_sim2sim](https://github.com/YiGongLily/play-it-by-eye_sim2sim)** — 加载部署包、渲染头部深度，并在浏览器中播放策略（平地 / 楼梯 / 斜坡）。
+
+```bash
+# 与本仓库同级克隆
+git clone https://github.com/YiGongLily/play-it-by-eye_sim2sim.git
+cd play-it-by-eye_sim2sim
+# 安装、deploy_real / mesh 依赖与运行命令见该仓库 README
+```
 
 ## 引用
 
